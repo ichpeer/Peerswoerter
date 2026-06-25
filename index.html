@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wort des Tages</title>
+    <style>
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background-color: #fbf9f4;
+            color: #2c3e50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .app-container {
+            background: #ffffff;
+            max-width: 400px;
+            width: 100%;
+            border-radius: 16px;
+            border: 1px solid #eae5d9;
+            box-shadow: 0 12px 35px rgba(230, 126, 34, 0.06);
+            padding: 35px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .streak-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #ffeeda;
+            color: #d35400;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 13px;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+
+        h1 {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: #a89f91;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 35px;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .word {
+            font-size: 20px; /* Kleiner für den Fehlerfall, wird per JS groß */
+            font-weight: bold;
+            color: #d35400;
+            margin-bottom: 30px;
+            line-height: 1.3;
+        }
+
+        .section {
+            text-align: left;
+            background: #f5f2eb;
+            padding: 18px 22px;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            border-left: 4px solid #e67e22;
+        }
+
+        .section h3 {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin-top: 0;
+            font-size: 12px;
+            color: #b87333;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .section p {
+            margin: 0;
+            font-size: 16px;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+
+        .example {
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container" id="app-screen">
+        <div class="streak-badge" id="streak-anzeige">🔥 --</div>
+        
+        <h1>Wort des Tages</h1>
+        <div class="word" id="wort-anzeige">⚠️ iPhone-Blockade!<br><span style="font-size:14px; font-weight:normal; color:#7f7567;">Apple blockiert lokale Dateien. Bitte öffne die Datei mit der kostenlosen App "Documents" (siehe Anleitung).</span></div>
+        
+        <div class="section">
+            <h3>Definition</h3>
+            <p id="definition-anzeige">Wird geladen...</p>
+        </div>
+        <div class="section">
+            <h3>Herkunft</h3>
+            <p id="herkunft-anzeige">Wird geladen...</p>
+        </div>
+        <div class="section">
+            <h3>Anwendung</h3>
+            <p class="example" id="anwendung-anzeige">Wird geladen...</p>
+        </div>
+    </div>
+
+    <script>
+        // Datenbank: 110 Wörter
+        const woerterDatenbank = [
+            {"id": 1, "wort": "antizipieren", "definition": "Etwas erkennen, bevor es eingetreten ist; eine Entwicklung vorwegnehmen.", "herkunft": "Aus dem Lateinischen 'anticipare' (vorwegnehmen).", "anwendung": "Ein guter Schachspieler kann die Züge seines Gegners antizipieren."},
+            {"id": 2, "wort": "pragmatisch", "definition": "Sachbezogen, lösungsorientiert und praktisch handelnd, statt rein theoretisch.", "herkunft": "Aus dem Griechischen 'pragma' (Handlung, Sache).", "anwendung": "Lass uns eine pragmatische Lösung für dieses Problem finden, anstatt lange zu diskutieren."},
+            {"id": 3, "wort": "kognitive Dissonanz", "definition": "Ein unangenehmer Gefühlszustand, der entsteht, wenn man zwei unvereinbare Gedanken, Überzeugungen oder Wünsche gleichzeitig hat.", "herkunft": "Aus dem Lateinischen 'cognoscere' (erkennen) und 'dissonantia' (Unstimmigkeit).", "anwendung": "Wer raucht, obwohl er genau weiß wie ungesund es ist, erlebt eine klassische kognitive Dissonanz."},
+            {"id": 4, "wort": "rudimentär", "definition": "Unvollständig, nicht ausgereift, nur in Ansätzen vorhanden.", "herkunft": "Aus dem Lateinischen 'rudimentum' (Anfang, erster Versuch).", "anwendung": "Meine Französischkenntnisse sind leider nur noch rudimentär."},
+            {"id": 5, "wort": "altruistisch", "definition": "Uneigennützig, selbstlos; durch Rücksicht auf andere bestimmt.", "herkunft": "Aus dem Lateinischen 'alter' (der Andere) über das Französische 'altruisme'.", "anwendung": "Seine Spende an das Waisenhaus war ein rein altruistisches Motiv."},
+            {"id": 6, "wort": "peripher tangieren", "definition": "Etwas nur am Rande berühren oder kaum betreffen; von minimaler Bedeutung oder Interesse für jemanden sein.", "herkunft": "Aus dem Griechischen 'peripheria' (Kreislinie) und dem Lateinischen 'tangere' (berühren).", "anwendung": "Seine ständigen Beschwerden über das Wetter tangieren mich ehrlich gesagt nur peripher."},
+            {"id": 7, "wort": "redundant", "definition": "Mehrfach vorhanden, überzählig und daher überflüssig (in der Sprache) oder als Ausfallschutz doppelt ausgelegt (in der Technik).", "herkunft": "Aus dem Lateinischen 'redundare' (überlaufen, im Überfluss vorhanden sein).", "anwendung": "Die ständige Wiederholung des gleichen Arguments machte seine Rede redundant."},
+            {"id": 8, "wort": "trivial", "definition": "Alltäglich, gewöhnlich, nichts Besonderes oder sehr leicht zu verstehen.", "herkunft": "Aus dem Lateinischen 'trivialis' (gewöhnlich, allgemein zugänglich).", "anwendung": "Das Problem ließ sich mit einer recht trivialen Methode lösen."},
+            {"id": 9, "wort": "larmoyant", "definition": "Wehleidig, übertrieben gefühlvoll oder rührselig jammernd.", "herkunft": "Aus dem Französischen 'larmoyant' (tränenreich).", "anwendung": "Sein larmoyanter Tonfall ging den Kollegen schnell auf die Nerven."},
+            {"id": 10, "wort": "adäquat", "definition": "Angemessen, passend, genau den Anforderungen entsprechend.", "herkunft": "Aus dem Lateinischen 'adaequare' (gleichmachen, anpassen).", "anwendung": "Wir müssen eine adäquate Antwort auf die Beschwerde des Kunden finden."},
+            {"id": 11, "wort": "implizieren", "definition": "Bedeuten, einschließen, gleichzeitig mit aussagen, ohne es ausdrücklich zu erwähnen.", "herkunft": "Aus dem Lateinischen 'implicare' (hineinwickeln, verknüpfen).", "anwendung": "Seine Aussage impliziert, dass er mit unserer Arbeit unzufrieden ist."},
+            {"id": 12, "wort": "Sisyphusarbeit", "definition": "Eine schwere, extrem mühsame und scheinbar nie endende Aufgabe, die letztendlich völlig ergebnislos bleibt.", "herkunft": "Nach Sisyphos, einer Figur aus der griechischen Mythologie, der ewig einen Felsblock einen Berg hinaufrollen musste.", "anwendung": "Das tägliche Löschen von Spam-E-Mails in diesem Postfach fühlt sich an wie eine Sisyphusarbeit."},
+            {"id": 13, "wort": "kognitiv", "definition": "Das Denken, Verstehen oder Wissen betreffend.", "herkunft": "Aus dem Lateinischen 'cognoscere' (erkenne, erfahren).", "anwendung": "Rätsel lösen ist eine gute Übung, um die kognitiven Fähigkeiten zu trainieren."},
+            {"id": 14, "wort": "obsolet", "definition": "Veraltet, nicht mehr gebräuchlich oder durch etwas Neues überholt.", "herkunft": "Aus dem Lateinischen 'obsoletus' (abgenutzt, altmodisch).", "anwendung": "Durch das Aufkommen von Streaming-Diensten sind Videotheken obsolet geworden."},
+            {"id": 15, "wort": "eklatant", "definition": "Offensichtlich, ins Auge fallend oder aufsehenerregend (meist im negativen Sinne).", "herkunft": "Aus dem Französischen 'éclatant' (strahlend, krachend).", "anwendung": "Der Bericht offenbarte eklatante Fehler in der Sicherheitsplanung."},
+            {"id": 16, "wort": "fakultativ", "definition": "Freiwillig, der eigenen Wahl überlassen; nicht zwingend erforderlich.", "herkunft": "Aus dem Lateinischen 'facultas' (Möglichkeit, Fähigkeit).", "anwendung": "Die Teilnahme an dem Zusatzkurs ist rein fakultativ."},
+            {"id": 17, "wort": "obligatorisch", "definition": "Verpflichtend, bindend; etwas, das zwingend gemacht werden muss.", "herkunft": "Aus dem Lateinischen 'obligare' (anbinden, verpflichten).", "anwendung": "Das Tragen eines Helms ist auf dieser Baustelle obligatorisch."},
+            {"id": 18, "wort": "desavouieren", "definition": "Jemanden bloßstellen, brüskieren oder öffentlich seine Glaubwürdigkeit und Autorität infrage stellen.", "herkunft": "Aus dem Französischen 'désavouer' (leugnen, nicht anerkennen).", "anwendung": "Durch seine unüberlegte Äußerung in der Presse hat der Minister seinen eigenen Sprecher desavouiert."},
+            {"id": 19, "wort": "eloquent", "definition": "Wortgewandt, redegewandt; sich gut und flüssig ausdrücken könnend.", "herkunft": "Aus dem Lateinischen 'eloqui' (aussprechen, vortragen).", "anwendung": "Er hielt eine äußerst eloquente Rede, die das gesamte Publikum fesselte."},
+            {"id": 20, "wort": "polarisieren", "definition": "Gegensätze schaffen; Meinungen so stark trennen, dass sich zwei gegnerische Lager bilden.", "herkunft": "Aus dem Französischen 'polariser' (auf einen Pol ausrichten).", "anwendung": "Der neue Politiker polarisiert stark – die einen lieben ihn, die anderen hassen ihn."},
+            {"id": 21, "wort": "Imponderabilien", "definition": "Unwägbarkeiten; Faktoren, die sich nicht genau berechnen oder vorhersehen lassen.", "herkunft": "Aus dem Lateinischen 'imponderabilis' (unwägbar).", "anwendung": "Bei diesem Projekt gibt es noch zu viele Imponderabilien."},
+            {"id": 22, "wort": "stoisch", "definition": "Gelassen, unerschütterlich; Gefühle nicht zeigend oder sich nicht aus der Ruhe bringen lassend.", "herkunft": "Nach der 'Stoa', einer antiken griechischen Philosophenschule.", "anwendung": "Er ertrug die stundenlange Verspätung des Zuges mit stoischer Ruhe."},
+            {"id": 23, "wort": "verifizieren", "definition": "Die Wahrheit oder Richtigkeit von etwas prüfen und bestätigen.", "herkunft": "Aus dem Mittellateinischen 'verificare' (wahr machen).", "anwendung": "Bitte klicken Sie auf den Link in der E-Mail, um Ihren Account zu verifizieren."},
+            {"id": 24, "wort": "kursorisch rezipieren", "definition": "Einen Text, Medien oder Informationen nur sehr oberflächlich, schnell und flüchtig aufnehmen oder überfliegen.", "herkunft": "Aus dem Lateinischen 'currere' (laufen) und 'recipere' (aufnehmen).", "anwendung": "Aus Zeitmangel konnte ich die 50-seitige Studie vor dem Meeting leider nur kursorisch rezipieren."},
+            {"id": 25, "wort": "lukrativ", "definition": "Gewinnbringend, einträglich; etwas, das sich finanziell sehr lohnt.", "herkunft": "Aus dem Lateinischen 'lucrativus' (gewinnbringend).", "anwendung": "Er hat ein sehr lukratives Angebot von einer anderen Firma bekommen."},
+            {"id": 26, "wort": "makaber", "definition": "Unheimlich, gruselig, mit dem Tod scherzend; einen düsteren Humor aufweisend.", "herkunft": "Aus dem Französischen 'macabre' (Totentanz betreffend).", "anwendung": "Ich fand seinen Witz über die Beerdigung ziemlich makaber."},
+            {"id": 27, "wort": "mäandrieren", "definition": "Sich in Schlangenlinien bewegen oder im übertragenen Sinne ziellos abschweifen.", "herkunft": "Vom Fluss 'Mäander' in der antiken Türkei, der für seine vielen Kurven bekannt war.", "anwendung": "Sein Vortrag mäandrierte von einem Thema zum nächsten, ohne auf den Punkt zu kommen."},
+            {"id": 28, "wort": "pedantisch", "definition": "Übertrieben genau, kleinlich, sich streng an Regeln und Details klammernd.", "herkunft": "Aus dem Italienischen 'pedante' (Schulmeister).", "anwendung": "Mein Chef ist extrem pedantisch und kontrolliert jedes Komma."},
+            {"id": 29, "wort": "rational", "definition": "Von der Vernunft geleitet, vernünftig, logisch denkend.", "herkunft": "Aus dem Lateinischen 'ratio' (Verstand, Vernunft).", "anwendung": "Wir müssen dieses Problem rational angehen und nicht emotional."},
+            {"id": 30, "wort": "kompromittieren", "definition": "Jemanden durch eine Handlung oder Aussage in Verlegenheit bringen, bloßstellen oder seinem Ruf empfindlich schaden.", "herkunft": "Aus dem Lateinischen 'compromittere' (sich gegenseitig versprechen).", "anwendung": "Die Veröffentlichung der privaten Chatverläufe könnte den Vorstand schwer kompromittieren."},
+            {"id": 31, "wort": "synergetisch", "definition": "Zusammenwirkend; wenn das Gemeinsame mehr ist als die Summe der Einzelteile.", "herkunft": "Aus dem Griechischen 'synergia' (Zusammenarbeit).", "anwendung": "Die Fusion der beiden Firmen hatte starke synergetische Effekte."},
+            {"id": 32, "wort": "tangieren", "definition": "Berühren, betreffen oder Einfluss auf etwas/jemanden haben.", "herkunft": "Aus dem Lateinischen 'tangere' (berühren).", "anwendung": "Dieser neue Gesetzesentwurf wird unser Unternehmen kaum tangieren."},
+            {"id": 33, "wort": "hermetisch", "definition": "Vollkommen dicht verschlossen; von der Außenwelt abgeriegelt.", "herkunft": "Nach Hermes Trismegistos, dem sagenhaften Begründer der Alchemie.", "anwendung": "Die Konferenz fand hinter hermetisch verschlossenen Türen statt."},
+            {"id": 34, "wort": "utopisch", "definition": "Nur in der Vorstellung möglich, realitätsfremd, unmöglich zu verwirklichen.", "herkunft": "Von Thomas Morus' Roman 'Utopia' (wörtlich 'Nicht-Ort').", "anwendung": "Deine Vorstellung, das Projekt in zwei Stunden zu beenden, ist utopisch."},
+            {"id": 35, "wort": "vehement", "definition": "Heftig, ungestüm, mit großem Nachdruck.", "herkunft": "Aus dem Lateinischen 'vehemens' (heftig, stürmisch).", "anwendung": "Sie hat sich vehement gegen die Vorwürfe verteidigt."},
+            {"id": 36, "wort": "stringent verifizieren", "definition": "Eine Behauptung oder Theorie logisch zwingend, lückenlos und unumstößlich überprüfen und beweisen.", "herkunft": "Aus dem Lateinischen 'stringere' (festziehen) und 'verificare' (wahr machen).", "anwendung": "Die Forscher mussten ihre gewagte These in mehreren Testreihen stringent verifizieren."},
+            {"id": 37, "wort": "zynisch", "definition": "Auf grausame, spöttische Weise verletzend; die guten Absichten anderer anzweifelnd.", "herkunft": "Aus dem Griechischen 'kynikos' (hündisch).", "anwendung": "Sein zynischer Kommentar über das Hilfsprojekt hat alle schockiert."},
+            {"id": 38, "wort": "affin", "definition": "Zuneigung oder Interesse für etwas besitzend; mit etwas vertraut sein.", "herkunft": "Aus dem Lateinischen 'affinis' (angrenzend).", "anwendung": "Für diese Stelle suchen wir jemanden, der sehr technikaffin ist."},
+            {"id": 39, "wort": "Oxymoron", "definition": "Eine rhetorische Figur, bei der zwei sich eigentlich widersprechende Begriffe kombiniert werden.", "herkunft": "Aus dem Griechischen 'oxys' (scharf) und 'moros' (dumm).", "anwendung": "Ausdrücke wie 'bittersüß' oder 'Hassliebe' sind klassische Beispiele für ein Oxymoron."},
+            {"id": 40, "wort": "autark", "definition": "Wirtschaftlich unabhängig, auf niemanden angewiesen, sich selbst versorgend.", "herkunft": "Aus dem Griechischen 'autarkeia' (Selbstgenügsamkeit).", "anwendung": "Das Haus besitzt Solarzellen, es ist komplett autark."},
+            {"id": 41, "wort": "diffus", "definition": "Unklar, ungeordnet, verschwommen, ohne klare Abgrenzung.", "herkunft": "Aus dem Lateinischen 'diffusus' (ausgebreitet).", "anwendung": "Ich habe ein recht diffuses Gefühl der Unruhe."},
+            {"id": 42, "wort": "Evidenz", "definition": "Der unumstößliche, empirische Beweis oder die absolute, augenscheinliche Gewissheit für die Richtigkeit einer Sache.", "herkunft": "Aus dem Lateinischen 'evidentia' (das Augenscheinliche, die Deutlichkeit).", "anwendung": "Es gibt bis heute keine wissenschaftliche Evidenz dafür, dass diese Methode tatsächlich eine Wirkung hat."},
+            {"id": 43, "wort": "exzessiv", "definition": "Das normale Maß übersteigend, maßlos, ausschweifend.", "herkunft": "Aus dem Lateinischen 'excedere' (überschreiten).", "anwendung": "Sein exzessiver Kaffeekonsum ist auf Dauer sicher nicht gesund."},
+            {"id": 44, "wort": "homogen", "definition": "Gleichartig, einheitlich aus gleichen Bestandteilen zusammengesetzt.", "herkunft": "Aus dem Griechischen 'homogenes' (von gleicher Art).", "anwendung": "Wir müssen den Teig rühren, bis eine homogene Masse entsteht."},
+            {"id": 45, "wort": "Konnotation", "definition": "Die Nebenbedeutung oder der emotionale Beiklang, den ein Wort zusätzlich zu seiner Hauptbedeutung hat.", "herkunft": "Aus dem Mittellateinischen 'connotatio' (Mitbezeichnung).", "anwendung": "Das Wort 'billig' hat neben 'preiswert' oft eine sehr negative Konnotation."},
+            {"id": 46, "wort": "heterogen", "definition": "Uneinheitlich, ungleichartig zusammengesetzt; aus völlig verschiedenen Elementen bestehend.", "herkunft": "Aus dem Griechischen 'heterogenes' (von anderer Art).", "anwendung": "Die Schulklasse war eine sehr heterogene Gruppe mit völlig unterschiedlichen Vorkenntnissen."},
+            {"id": 47, "wort": "akribisch", "definition": "Äußerst sorgfältig, extrem detailgenau und gründlich.", "herkunft": "Aus dem Griechischen 'akribia' (Genauigkeit).", "anwendung": "Der Detektiv untersuchte den Tatort akribisch nach kleinsten Spuren."},
+            {"id": 48, "wort": "eloquent artikulieren", "definition": "Sich besonders wortgewandt, klar, präzise und elegant ausdrücken.", "herkunft": "Aus dem Lateinischen 'eloqui' (aussprechen) und 'articulare' (deutlich gliedern).", "anwendung": "Sie konnte ihre komplexen Forderungen vor dem Vorstand äußerst eloquent artikulieren."},
+            {"id": 49, "wort": "kursorisch", "definition": "Oberflächlich, schnell durchsehend, nicht ins Detail gehend.", "herkunft": "Aus dem Lateinischen 'currere' (laufen).", "anwendung": "Ich habe den Vertrag vor dem Meeting nur kursorisch überfliegen können."},
+            {"id": 50, "wort": "stringent", "definition": "Logisch zwingend, schlüssig, bündig und ohne Widersprüche.", "herkunft": "Aus dem Lateinischen 'stringere' (festziehen).", "anwendung": "Ihre Argumentation in der Debatte war absolut stringent und überzeugend."},
+            {"id": 51, "wort": "marginal", "definition": "Geringfügig, nebensächlich; am Rande liegend.", "herkunft": "Aus dem Lateinischen 'margo' (Rand).", "anwendung": "Die Kosten für das Büromaterial spielen im Gesamtbudget nur eine marginale Rolle."},
+            {"id": 52, "wort": "interimistisch", "definition": "Vorübergehend, einstweilig, als Zwischenlösung gedacht.", "herkunft": "Aus dem Lateinischen 'interim' (inzwischen).", "anwendung": "Nach dem Rücktritt des Chefs übernahm sein Stellvertreter interimistisch die Leitung."},
+            {"id": 53, "wort": "klandestin", "definition": "Heimlich, im Verborgenen stattfindend (oft im politischen oder illegalen Kontext).", "herkunft": "Aus dem Lateinischen 'clandestinus' (heimlich).", "anwendung": "Die Rebellen trafen sich zu einer klandestinen Sitzung im Keller."},
+            {"id": 54, "wort": "obsolet machen", "definition": "Etwas so weit überholen, ersetzen oder entwerten, dass es völlig überflüssig und veraltet wird.", "herkunft": "Aus dem Lateinischen 'obsoletus' (abgenutzt) und 'facere' (machen).", "anwendung": "Die Einführung der neuen Software wird den manuellen Papierkram im Büro endgültig obsolet machen."},
+            {"id": 55, "wort": "empathisch", "definition": "Einfühlsam; fähig, sich in die Gefühle und Gedanken anderer hineinzuversetzen.", "herkunft": "Aus dem Griechischen 'empatheia' (Mitgefühl).", "anwendung": "Als Psychologin muss man den Patienten gegenüber sehr empathisch auftreten."},
+            {"id": 56, "wort": "sporadisch", "definition": "Vereinzelt vorkommend, unregelmäßig, nur ab und zu.", "herkunft": "Aus dem Griechischen 'sporaden' (verstreut).", "anwendung": "Wir haben uns in den letzten Jahren nur noch sporadisch getroffen."},
+            {"id": 57, "wort": "subversiv", "definition": "Umstürzlerisch, zersetzend; eine bestehende Ordnung heimlich untergrabend.", "herkunft": "Aus dem Lateinischen 'subvertere' (umstürzen).", "anwendung": "Die Gruppe verteilte nachts Flugblätter mit subversiven Texten."},
+            {"id": 58, "wort": "lethargisch", "definition": "Träge, teilnahmslos, energielos und ohne Tatendrang.", "herkunft": "Aus dem Griechischen 'lethargia' (Schlafsucht).", "anwendung": "Wegen der extremen Sommerhitze lagen die Hunde völlig lethargisch im Schatten."},
+            {"id": 59, "wort": "melancholisch", "definition": "Schwermütig, traurig, in gedrückter oder nachdenklicher Stimmung.", "herkunft": "Aus dem Griechischen 'melancholia' (wörtlich: 'schwarze Galle').", "anwendung": "Das regnerische Herbstwetter versetzte ihn in eine melancholische Stimmung."},
+            {"id": 60, "wort": "Apologet", "definition": "Jemand, der eine bestimmte Lehre, Idee oder Weltanschauung vehement verteidigt.", "herkunft": "Aus dem Griechischen 'apologeisthai' (sich verteidigen).", "anwendung": "Er gilt als einer der bekanntesten Apologeten des freien Marktes."},
+            {"id": 61, "wort": "narzisstisch", "definition": "Selbstverliebt, egozentrisch; stark auf den eigenen Vorteil und die eigene Bewunderung bedacht.", "herkunft": "Aus dem griechischen Mythos von Narziss, der sich in sein eigenes Spiegelbild verliebte.", "anwendung": "Sein narzisstisches Verhalten machte es für Kollegen schwer, im Team mit ihm zu arbeiten."},
+            {"id": 62, "wort": "renitent", "definition": "Widerspenstig, bockig, sich dem Willen anderer widersetzend.", "herkunft": "Aus dem Lateinischen 'reniti' (sich widersetzen).", "anwendung": "Der renitente Kunde weigerte sich strikt, das Geschäft trotz Ladenschlusses zu verlassen."},
+            {"id": 63, "wort": "Dilemma", "definition": "Eine Zwangslage oder Situation, in der man sich zwischen zwei gleich schlechten Optionen entscheiden muss.", "herkunft": "Aus dem Griechischen 'di' (zwei) und 'lemma' (Annahme, Satz).", "anwendung": "Sie steckte in einem moralischen Dilemma: Sollte sie die Wahrheit sagen oder ihre Freundin schützen?"},
+            {"id": 64, "wort": "omnipräsent", "definition": "Allgegenwärtig; zur gleichen Zeit überall präsent oder gefühlt überall vorhanden.", "herkunft": "Aus dem Lateinischen 'omnis' (alles) und 'praesens' (anwesend).", "anwendung": "Werbung für Smartphones ist in unserem modernen Alltag mittlerweile omnipräsent."},
+            {"id": 65, "wort": "bagatellisieren", "definition": "Eine Sache verharmlosen, als unbedeutend oder als Kleinigkeit darstellen.", "herkunft": "Aus dem Französischen 'bagatelle' (Kleinigkeit).", "anwendung": "Du solltest deine Verletzung am Fuß nicht bagatellisieren, geh lieber zum Arzt."},
+            {"id": 66, "wort": "Platitüde", "definition": "Eine abgedroschene, gehaltlose Redewendung, Floskel oder Banalität.", "herkunft": "Aus dem Französischen 'plat' (flach, seicht).", "anwendung": "Statt echter Ratschläge hatte er nur billige Platitüden wie 'Kopf hoch' für sie übrig."},
+            {"id": 67, "wort": "dekadent", "definition": "Verschwenderisch, ausschweifend; vom kulturellen oder moralischen Verfall gezeichnet.", "herkunft": "Aus dem Französischen 'décadence' (Niedergang).", "anwendung": "Das luxuriöse Festmahl mit vergoldeten Speisen wirkte auf die Gäste fast schon dekadent."},
+            {"id": 68, "wort": "heroisch", "definition": "Heldendank, mutig; eine über das normale Maß hinausgehende, tapfere Tat vollbringend.", "herkunft": "Aus dem Griechischen 'heros' (Held).", "anwendung": "Der Feuerwehrmann unternahm einen heroischen Rettungsversuch im brennenden Haus."},
+            {"id": 69, "wort": "Dekorum", "definition": "Das schickliche Benehmen, der äußere Anstand oder das, was sich in einer bestimmten Situation gehört.", "herkunft": "Aus dem Lateinischen 'decorum' (das Angemessene, Schöne).", "anwendung": "Trotz des heftigen Streits wahrten die Politiker im Fernsehstudio das äußere Dekorum."},
+            {"id": 70, "wort": "lakonisch", "definition": "Kurz, wortkarg, treffend und ohne große Erklärungen.", "herkunft": "Nach 'Lakonien' (Heimat der alten Spartaner, die für ihre wortkarge Art bekannt waren).", "anwendung": "Auf die lange Frage antwortete er nur mit einem lakonischen 'Nein'."},
+            {"id": 71, "wort": "fundamental", "definition": "Grundlegend, von entscheidender Bedeutung; die Basis für etwas bildend.", "herkunft": "Aus dem Lateinischen 'fundamentum' (Unterbau, Grundstein).", "anwendung": "Gegenseitiges Vertrauen ist eine fundamentale Voraussetzung für eine glückliche Beziehung."},
+            {"id": 72, "wort": "Konsens", "definition": "Die übereinstimmende Meinung einer Gruppe; allgemeine Einigkeit bei einer Entscheidung.", "herkunft": "Aus dem Lateinischen 'consensus' (Übereinstimmung, Einigkeit).", "anwendung": "Nach stundenlangen Verhandlungen wurde endlich ein parteiübergreifender Konsens erzielt."},
+            {"id": 73, "wort": "fragil", "definition": "Zerbrechlich, zart, anfällig für Störungen und nicht sehr robust.", "herkunft": "Aus dem Lateinischen 'fragilis' (zerbrechlich).", "anwendung": "Nach der Krise befindet sich der Frieden in der Region auf einem sehr fragilen Fundament."},
+            {"id": 74, "wort": "paradox", "definition": "Widersprüchlich; eine Aussage, die scheinbar unlogisch ist, aber bei genauerem Hinsehen eine tiefere Wahrheit enthält.", "herkunft": "Aus dem Griechischen 'paradoxos' (unerwartet, gegen die gängige Meinung).", "anwendung": "Es ist paradox: Je mehr man versucht zu schlafen, desto unruhiger wird man oft."},
+            {"id": 75, "wort": "Diskurs", "definition": "Ein methodisch geführtes, ernsthaftes Gespräch oder eine tiefergehende Debatte über ein bestimmtes Thema.", "herkunft": "Aus dem Lateinischen 'discursus' (Umlauf, das Hin- und Herlaufen).", "anwendung": "Die neuen wissenschaftlichen Erkenntnisse bereicherten den gesellschaftlichen Diskurs ungemein."},
+            {"id": 76, "wort": "Dichotomie", "definition": "Eine Struktur aus zwei Teilen, die einander ohne Schnittmenge komplett gegenüberstehen (Zweiteilung).", "herkunft": "Aus dem Griechischen 'dichotomia' (Halbierung, Zweiteilung).", "anwendung": "In der Philosophie wird oft die klassische Dichotomie zwischen Körper und Geist diskutiert."},
+            {"id": 77, "wort": "prätentiös", "definition": "Anmaßend, Eindruck schinden wollend; sich wichtiger oder gebildeter darstellend, als man eigentlich ist.", "herkunft": "Aus dem Französischen 'prétentieux' (anspruchsvoll, eingebildet).", "anwendung": "Sein prätentiöses Gehabe beim Abendessen wirkte auf die anderen Gäste eher unhöflich als elegant."},
+            {"id": 78, "wort": "Indolenz", "definition": "Eine ausgeprägte Trägheit, geistige Unbeweglichkeit oder Gleichgültigkeit gegenüber Problemen.", "herkunft": "Aus dem Lateinischen 'indolentia' (Schmerzlosigkeit).", "anwendung": "Die bürokratische Indolenz der Behörde verzögerte den Bauantrag um Monate."},
+            {"id": 79, "wort": "Idiosynkrasie", "definition": "Eine psychische oder körperliche Überempfindlichkeit; im übertragenen Sinne eine ganz besondere, oft skurrile Eigenheit einer Person.", "herkunft": "Aus dem Griechischen 'idios' (eigen) und 'synkrasis' (Mischung).", "anwendung": "Es gehört zu ihren festen Idiosynkrasien, dass sie im Büro ausschließlich blaue Stifte benutzt."},
+            {"id": 80, "wort": "inhärent", "definition": "Einer Sache fest anhaftend, in ihr fest enthalten oder ihr von Natur aus innewohnend.", "herkunft": "Aus dem Lateinischen 'inhaerere' (festkleben, innewohnen).", "anwendung": "Jedem Fallschirmsprung wohnt ein gewisses inhärentes Risiko inne."},
+            {"id": 81, "wort": "Kollusion", "definition": "Eine geheime, oft betrügerische Absprache zwischen zwei Parteien zum Schaden eines Dritten.", "herkunft": "Aus dem Lateinischen 'colludere' (gemeinsam spielen, ein Einverständnis haben).", "anwendung": "Den beiden Firmen wurde illegale Kollusion bei der Preisabsprache vorwerfen."},
+            {"id": 82, "wort": "Paradigma", "definition": "Ein grundlegendes Denkmodell, eine Lehrmeinung oder ein vorherrschendes, allgemeines Muster in einer Epoche.", "herkunft": "Aus dem Griechischen 'paradeigma' (Muster, Vorbild).", "anwendung": "Die Erfindung des Smartphones leitete ein völlig neues gesellschaftliches Paradigma ein."},
+            {"id": 83, "wort": "subtil", "definition": "Fein strukturiert, kaum wahrnehmbar, sehr feinsinnig oder raffiniert.", "herkunft": "Aus dem Lateinischen 'subtilis' (fein, zart).", "anwendung": "Sie übte subtile Kritik an seinen Plänen, ohne ihn vor versammelter Mannschaft zu verletzen."},
+            {"id": 84, "wort": "Polemik", "definition": "Ein scharfer, oft unsachlicher und persönlicher Angriff in einer Diskussion oder einem Text.", "herkunft": "Aus dem Griechischen 'polemikos' (feindselig, den Krieg betreffend).", "anwendung": "Seine Rede war reine Polemik und enthielt leider kaum sachliche Argumente."},
+            {"id": 85, "wort": "dekonstruieren", "definition": "Einen Text, Begriff oder Zustand präzise in seine Einzelteile zerlegen, um verborgene Strukturen und Widersprüche sichtbar zu machen.", "herkunft": "Vom französischen Philosophen Jacques Derrida geprägt.", "anwendung": "Im Literaturseminar dekonstruierten die Studierenden das weltberühmte Gedicht."},
+            {"id": 86, "wort": "Quintessenz", "definition": "Der wesentliche Kern, das Wichtigste, der Kernpunkt oder das entscheidende Fazit einer Sache.", "herkunft": "Aus dem Lateinischen 'quinta essentia' (das fünfte Element in der antiken Naturphilosophie).", "anwendung": "Die Quintessenz des langen Meetings war, dass wir ab sofort drastisch Kosten einsparen müssen."},
+            {"id": 87, "wort": "inkompatibel", "definition": "Völlig unvereinbar; zwei Dinge oder Eigenschaften, die absolut nicht zusammenpassen.", "herkunft": "Aus dem Spätlateinischen 'in-' (nicht) und 'compatibilis' (vereinbar).", "anwendung": "Ihre Lebensentwürfe waren am Ende einfach inkompatibel, weshalb sie sich trennten."},
+            {"id": 88, "wort": "souverän", "definition": "Überlegen, absolut sicher im Auftreten; unabhängig und über den Dingen stehend handeln.", "herkunft": "Aus dem Französischen 'souverain' (überlegen, herrschend).", "anwendung": "Trotz der kritischen und bohrenden Fragen der Journalisten blieb der Sprecher absolut souverän."},
+            {"id": 89, "wort": "Dogma", "definition": "Ein starrer Lehrsatz, eine festgelegte Meinung oder ein Grundsatz, der absoluten Anspruch auf Wahrheit erhebt und keinen Widerspruch duldet.", "herkunft": "Aus dem Griechischen 'dogma' (Meinung, Beschluss).", "anwendung": "In einer modernen, freien Wissenschaft sollte kein Dogma über jede Kritik erhaben sein."},
+            {"id": 90, "wort": "Sanktion", "definition": "Eine Zwangs- oder Strafmaßnahme, die bei der Verletzung von Regeln, Gesetzen oder Verträgen verhängt wird.", "herkunft": "Aus dem Lateinischen 'sanctio' (Rechtsgesetz, Strafbestimmung).", "anwendung": "Die Europäische Union beschloss harte wirtschaftliche Sanktionen gegen das Land."},
+            {"id": 91, "wort": "Kohärenz", "definition": "Ein logischer, geordneter und nachvollziehbarer Zusammenhang zwischen verschiedenen Teilen.", "herkunft": "Aus dem Lateinischen 'cohaerere' (zusammenhängen).", "anwendung": "Seinem Vortrag fehlte jegliche Kohärenz, weshalb am Ende niemand den Inhalt verstand."},
+            {"id": 92, "wort": "Koryphäe", "definition": "Eine Person, die auf einem bestimmten Fachgebiet absolute Spitzenleistungen erbringt und als Experte gilt.", "herkunft": "Aus dem Griechischen 'koryphaia' (Anführer des Chors).", "anwendung": "Professor Müller ist eine weltbekannte Koryphäe auf dem Gebiet der Herzchirurgie."},
+            {"id": 93, "wort": "Ambivalenz", "definition": "Zustand der Zwiespältigkeit; das Nebeneinanderbestehen von gegensätzlichen Gefühlen oder Gedanken.", "herkunft": "Aus dem Lateinischen 'ambo' (beide) und 'valentia' (Stärke, Kraft).", "anwendung": "Ihre Haltung zu dem neuen Jobangebot war von großer Ambivalenz geprägt."},
+            {"id": 94, "wort": "Kompensation", "definition": "Der Ausgleich von Mängeln, Verlusten oder Fehlleistungen durch andere Stärken.", "herkunft": "Aus dem Lateinischen 'compensare' (miteinander aufwiegen).", "anwendung": "Als Kompensation für den verpassten Flug bot die Airline den Passagieren Hotelgutscheine an."},
+            {"id": 95, "wort": "Äquivalent", "definition": "Ein Gegenstück, das in Wert, Bedeutung oder Funktion völlig gleichwertig ist.", "herkunft": "Aus dem Lateinischen 'aequus' (gleich) und 'valere' (wert sein).", "anwendung": "Das deutsche Abitur ist das Äquivalent zum französischen Baccalauréat."},
+            {"id": 96, "wort": "Euphemismus", "definition": "Eine beschönigende, mildernde oder verharmlosende Umschreibung für etwas Unangenehmes.", "herkunft": "Aus dem Griechischen 'eu' (gut) und 'pheme' (Rede, Sagen).", "anwendung": "„Freisetzen von Mitarbeitern“ ist ein bekannter Euphemismus für eine Kündigungswelle."},
+            {"id": 97, "wort": "Misanthrop", "definition": "Ein Menschenfeind; eine Person, die das Verhalten der Menschen meidet oder eine allgemein misstrauische Haltung ihnen gegenüber hat.", "herkunft": "Aus dem Griechischen 'misein' (hassen) und 'anthropos' (Mensch).", "anwendung": "Er lebte völlig zurückgezogen im Wald und galt im Dorf als mürrischer Misanthrop."},
+            {"id": 98, "wort": "Hedonismus", "definition": "Eine philosophische Strömung oder Lebenseinstellung, bei der Genuss, Lust und die Vermeidung von Schmerz im Mittelpunkt stehen.", "herkunft": "Aus dem Griechischen 'hedone' (Freude, Lust).", "anwendung": "Ihr Urlaub war purer Hedonismus: Sie lag den ganzen Tag am Pool und ließ sich vermöhnen."},
+            {"id": 99, "wort": "prägnant", "definition": "Etwas kurz, treffend und gehaltvoll auf den Punkt bringen; scharf ausgeprägt.", "herkunft": "Aus dem Lateinischen 'praegnans' (bedeutungsvoll, eigentlich: schwanger).", "anwendung": "Sie gab eine prägnante Zusammenfassung der zweistündigen Diskussion."},
+            {"id": 100, "wort": "Apathie", "definition": "Ein Zustand ausgeprägter Teilnahmslosigkeit, Gleichgültigkeit und mangelnder emotionaler Erregbarkeit.", "herkunft": "Aus dem Griechischen 'apatheia' (Unempfindlichkeit).", "anwendung": "Nach der bitteren Niederlage versank das gesamte Team in tiefer Apathie."},
+            {"id": 101, "wort": "Symbiose", "definition": "Das Zusammenleben von verschiedenen Organismen (oder im übertragenen Sinne Personen/Unternehmen) zu beiderseitigem Nutzen.", "herkunft": "Aus dem Griechischen 'symbiosis' (Zusammenleben).", "anwendung": "Zwischen den beiden kreativen Köpfen der Agentur herrschte eine perfekte berufliche Symbiose."},
+            {"id": 102, "wort": "oszillieren", "definition": "Pendeln, schwingen; sich gleichmäßig zwischen zwei verschiedenen Zuständen oder Meinungen hin- und herwegen.", "herkunft": "Aus dem Lateinischen 'oscillare' (schaukeln).", "anwendung": "Die Stimmung an den Aktienmärkten oszillierte in dieser Woche zwischen Angst und Hoffnung."},
+            {"id": 103, "wort": "Symptomatisch", "definition": "Bezeichnend oder charakteristisch für einen bestimmten Zustand, eine Entwicklung oder eine Krankheit.", "herkunft": "Aus dem Griechischen 'symptoma' (Zufall, Begleiterscheinung).", "anwendung": "Dass niemand ans Telefon geht, ist symptomatisch für das Chaos in dieser Firma."},
+            {"id": 104, "wort": "insinuieren", "definition": "Etwas vorsichtig andeuten, unterschieben oder durch feine Anspielungen zu verstehen geben (meist negativ besetzt).", "herkunft": "Aus dem Lateinischen 'insinuare' (hineindrängen, einschmeicheln).", "anwendung": "Möchten Sie damit etwa insinuieren, dass ich das Geld gestohlen habe?"},
+            {"id": 105, "wort": "reziprok", "definition": "Wechselseitig; aufeinander bezogen oder in gleicher Weise gegenseitig erfolgend.", "herkunft": "Aus dem Lateinischen 'reciprocus' (rückwärts- und vorwärtsgehend).", "anwendung": "Vertrauen in einer Partnerschaft ist idealerweise ein reziproker Prozess."},
+            {"id": 106, "wort": "Status quo", "definition": "Der gegenwärtige, aktuelle Zustand oder Verfassung einer Sache.", "herkunft": "Aus dem Lateinischen 'status quo ante' (der Zustand, in dem es vorher war).", "anwendung": "Viele Menschen neigen dazu, den Status quo beizubehalten, statt Veränderungen zu wagen."},
+            {"id": 107, "wort": "Gleichmut", "definition": "Eine gelassene, unerschütterliche Gemütsruhe gegenüber allen Lebenslagen, Erfolgen oder Rückschlägen.", "herkunft": "Zusammengesetzt aus „gleich“ und „Mut“ (im alten Sinne von Gemütszustand).", "anwendung": "Sie ertrug die ungerechtfertigte Kritik mit bewundernswertem Gleichmut."},
+            {"id": 108, "wort": "Nostalgie", "definition": "Eine wehmütige, oft leicht idealisierende Sehnsucht nach einer vergangenen Zeit oder der Heimat.", "herkunft": "Aus dem Griechischen 'nostos' (Heimkehr) und 'algos' (Schmerz).", "anwendung": "Beim Betrachten der alten Kinderfotos überkam sie eine Welle der Nostalgie."},
+            {"id": 109, "wort": "Metapher", "definition": "Ein bildhafter Ausdruck, bei dem ein Wort im übertragenen, nicht im wörtlichen Sinne gebraucht wird.", "herkunft": "Aus dem Griechischen 'metapherein' (übertragen, anderswohin tragen).", "anwendung": "„Rabenmutter“ oder „Warteschlange“ sind klassische Metaphern in unserer Sprache."},
+            {"id": 110, "wort": "Paternalismus", "definition": "Eine bevormundende Haltung oder Ordnung, bei der eine Autorität im Namen anderer entscheidet, was gut für sie ist.", "herkunft": "Aus dem Lateinischen 'pater' (Vater).", "anwendung": "Kritiker warfen der Regierung wegen der strengen Vorschriften puren Paternalismus vor."},
+            {"id": 111, "wort": "Meritokratie", "definition": "Ein System, in dem gesellschaftlicher Status und Erfolg auf persönlicher Leistung basieren.", "herkunft": "Aus dem Lateinischen 'meritum' (Verdienst) und Griechischen 'kratein' (herrschen).", "anwendung": "Kritiker bezweifeln, ob unsere moderne Gesellschaft eine reine Meritokratie ist."},
+            {"id": 112, "wort": "Anachronismus", "definition": "Eine zeitliche Falschzuordnung; etwas, das nicht in die aktuelle Epoche passt.", "herkunft": "Aus dem Griechischen 'ana' (gegen) und 'chronos' (Zeit).", "anwendung": "Die Nutzung eines Faxgeräts im Büro wirkt heute wie ein reiner Anachronismus."},
+            {"id": 113, "wort": "Antagonismus", "definition": "Ein ausgeprägter Gegensatz oder Widerstreit zwischen zwei Kräften oder Personen.", "herkunft": "Aus dem Griechischen 'antagonizesthai' (gegen jemanden kämpfen).", "anwendung": "Der politische Antagonismus zwischen den Lagern blockierte wichtige Reformen."},
+            {"id": 114, "wort": "Philanthrop", "definition": "Ein Menschenfreund; jemand, der anderen durch Geld oder Taten selbstlos hilft.", "herkunft": "Aus dem Griechischen 'philos' (Freund) und 'anthropos' (Mensch).", "anwendung": "Als bekannter Philanthrop spendete er Millionen für den Bau von Krankenhäusern."},
+            {"id": 115, "wort": "Plausibilität", "definition": "Die Eigenschaft, für den Verstand einleuchtend, verständlich und glaubwürdig zu sein.", "herkunft": "Aus dem Lateinischen 'plausibilis' (beifallswürdig, einleuchtend).", "anwendung": "Seine kuriose Ausrede verlor bei genauerer Betrachtung jegliche Plausibilität."},
+            {"id": 116, "wort": "Kausalität", "definition": "Die eindeutige Beziehung zwischen Ursache und Wirkung.", "herkunft": "Aus dem Lateinischen 'causa' (Ursache).", "anwendung": "Es besteht eine klare Kausalität zwischen mangelndem Schlaf und Konzentrationsschwäche."},
+            {"id": 117, "wort": "Kontemplation", "definition": "Das konzentrierte, tiefe Nachdenken oder das Versinken in eine geistige Betrachtung.", "herkunft": "Aus dem Lateinischen 'contemplatio' (Betrachtung, Anschauung).", "anwendung": "Er zog sich zur Kontemplation für ein ruhiges Wochenende in ein Kloster zurück."},
+            {"id": 118, "wort": "Epiphanie", "definition": "Eine plötzliche, tiefgreifende Erkenntnis, Erleuchtung oder ein Geistesblitz.", "herkunft": "Aus dem Griechischen 'epiphaneia' (Erscheinung).", "anwendung": "Mitten in der Nacht hatte der Programmierer eine Epiphanie und löste den Bug."},
+            {"id": 119, "wort": "Askese", "definition": "Eine streng enthaltsame Lebensweise zur geistigen oder religiösen Selbstdisziplin.", "herkunft": "Aus dem Griechischen 'askesis' (Übung, Schulung).", "anwendung": "Nach Jahren des Luxus entschied er sich überraschend für ein Leben in Askese."},
+            {"id": 120, "wort": "Ataraxie", "definition": "Der Zustand der seelischen Unerschütterlichkeit und absoluten Gemütsruhe.", "herkunft": "Aus dem Griechischen 'ataraxia' (Unerschütterlichkeit).", "anwendung": "Die antiken Stoiker strebten nach Ataraxie, um dem Leid der Welt zu trotzen."},
+            {"id": 121, "wort": "Perfidie", "definition": "Eine heimtückische, niederträchtige Falschheit oder ein hinterhältiger Vertrauensbruch.", "herkunft": "Aus dem Lateinischen 'perfidia' (Treulosigkeit).", "anwendung": "Seinen besten Freund an die Konkurrenz zu verraten, zeugt von großer Perfidie."},
+            {"id": 122, "wort": "Allüre", "definition": "Auffälliges, oft arrogantes, eitles oder verwöhntes Gehabe (meist im Plural).", "herkunft": "Aus dem Französischen 'allure' (Gangart, Benehmen).", "anwendung": "Der neue Star verärgerte die gesamte Filmcrew mit seinen ständigen Allüren."},
+            {"id": 123, "wort": "Ästhetik", "definition": "Die Lehre vom Schönen oder die stilvolle, harmonische Wahrnehmung von Dingen.", "herkunft": "Aus dem Griechischen 'aisthesis' (Wahrnehmung).", "anwendung": "Das minimalistische Design des Smartphones besticht durch seine schlichte Ästhetik."},
+            {"id": 124, "wort": "Kakofonie", "definition": "Ein unangenehmer, disharmonischer Klang oder ein lautes Durcheinander von Stimmen.", "herkunft": "Aus dem Griechischen 'kakos' (schlecht) und 'phone' (Stimme, Klang).", "anwendung": "Der Berufsverkehr in der Innenstadt war eine einzige Kakofonie aus Hupen."},
+            {"id": 125, "wort": "Dystopie", "definition": "Die fiktive Vorstellung einer zukünftigen Gesellschaft, die sich extrem negativ entwickelt hat.", "herkunft": "Zusammengesetzt aus dem Griechischen 'dys-' (schlecht) und 'topos' (Ort).", "anwendung": "Der Science-Fiction-Roman beschreibt eine düstere Dystopie unter einer KI-Diktatur."},
+            {"id": 126, "wort": "Elitär", "definition": "Einer exklusiven, gehobenen Schicht angehörend; sich für etwas Besseres haltend.", "herkunft": "Aus dem Französischen 'élite' (Auswahl, das Beste).", "anwendung": "Sein elitäres Gehabe kam bei den neuen Arbeitskollegen gar nicht gut an."},
+            {"id": 127, "wort": "Resilienz", "definition": "Die psychische Widerstandskraft, Krisen und Rückschläge ohne Schaden zu überstehen.", "herkunft": "Aus dem Lateinischen 'resilire' (zurückspringen, abprallen).", "anwendung": "Dank ihrer Resilienz ließ sie sich von dem beruflichen Misserfolg nicht entmutigen."},
+            {"id": 128, "wort": "Enigma", "definition": "Ein großes, schwer zu entschlüsselndes Rätsel, Geheimnis oder Mysterium.", "herkunft": "Aus dem Griechischen 'ainigma' (Rätsel).", "anwendung": "Die wahre Identität des anonymen Künstlers bleibt für die Fachwelt ein Enigma."},
+            {"id": 129, "wort": "Esoterisch", "definition": "Nur für einen kleinen, eingeweihten Kreis verständlich; heute oft spirituell-geheimnisvoll.", "herkunft": "Aus dem Griechischen 'esoterikos' (innerlich, dem inneren Kreis zugehörig).", "anwendung": "Die theoretischen Abhandlungen des Professors waren vielen Studenten zu esoterisch."},
+            {"id": 130, "wort": "Exzentrisch", "definition": "Auf auffällige, oft schrullige Weise von der gesellschaftlichen Norm abweichend.", "herkunft": "Aus dem Spätlateinischen 'excentricus' (außerhalb des Mittelpunkts).", "anwendung": "Der exzentrische Erfinder lebte in einem Haus, das komplett aus Glas gebaut war."},
+            {"id": 131, "wort": "Fatalismus", "definition": "Die Lebenseinstellung, dass alles durch das Schicksal vorbestimmt und unabwendbar ist.", "herkunft": "Aus dem Lateinischen 'fatum' (Schicksal, Götterspruch).", "anwendung": "Statt aktiv zu kämpfen, ergab er sich in passivem Fatalismus seinem Schicksal."},
+            {"id": 132, "wort": "Frivol", "definition": "Leichtfertig, schlüpfrig, gewagt oder moralisch nicht ganz einwandfrei.", "herkunft": "Aus dem Lateinischen 'frivolus' (nichtig, brüchig, wertlos).", "anwendung": "Sein frivoler Witz sorgte bei der feierlichen Gala für betretenes Schweigen."},
+            {"id": 133, "wort": "Generös", "definition": "Äußerst großzügig, edelmütig und spendabel im Umgang mit anderen.", "herkunft": "Aus dem Französischen 'généreux' (edel, großzügig).", "anwendung": "Die Gastgeber zeigten sich generös und übernahmen die gesamten Hotelkosten."},
+            {"id": 134, "wort": "Hybrid", "definition": "Aus verschiedenen Arten, Stilen oder Elementen zusammengesetzt; eine Mischform.", "herkunft": "Aus dem Griechischen 'hybris' (Übermut), später biologisch umgedeutet.", "anwendung": "Das neue Arbeitsmodell ist hybrid und kombiniert Homeoffice mit Präsenztagen."},
+            {"id": 135, "wort": "Hypochonder", "definition": "Jemand, der sich ständig einbildet, schwer krank zu sein, ohne medizinischen Befund.", "herkunft": "Aus dem Griechischen 'hypochondria' (Bereich unter den Rippen, einst Sitz von Leiden).", "anwendung": "Als echter Hypochonder googelt er bei jedem kleinen Zwicken sofort die Symptome."},
+            {"id": 136, "wort": "Impertinent", "definition": "Unverschämt, frech, auf provozierende Weise unangemessen oder respektlos.", "herkunft": "Aus dem Lateinischen 'impertinens' (nicht zur Sache gehörend).", "anwendung": "Seine impertinenten Fragen während des Meetings verärgerten den Projektleiter."},
+            {"id": 137, "wort": "Infam", "definition": "Bösartig, niederträchtig, abscheulich und den Ruf einer Person schädigend.", "herkunft": "Aus dem Lateinischen 'infamis' (berüchtigt, ehrlos).", "anwendung": "Es ist eine infame Unterstellung, zu behaupten, ich hätte die Daten gestohlen."},
+            {"id": 138, "wort": "Intuition", "definition": "Das Bauchgefühl; die Fähigkeit, ohne logisches Nachdenken spontan die Wahrheit zu erfassen.", "herkunft": "Aus dem Lateinischen 'intueri' (genau hinsehen, betrachten).", "anwendung": "Meine Intuition sagte mir von Anfang an, dass an dem Deal etwas faul ist."},
+            {"id": 139, "wort": "Invektive", "definition": "Eine scharfe, öffentlich vorgetragene Beleidigung, Schmähung oder Angriffsrede.", "herkunft": "Aus dem Lateinischen 'invectivus' (scheltend, angreifend).", "anwendung": "Die politische Diskussion artete leider in eine Reihe persönlicher Invektiven aus."},
+            {"id": 140, "wort": "Ironie", "definition": "Eine feine Form des Spotts, bei der man das Gegenteil von dem sagt, was man meint.", "herkunft": "Aus dem Griechischen 'eironeia' (Verstellung).", "anwendung": "„Was für ein herrlicher Sommertag!“, rief er voller Ironie im strömenden Regen."},
+            {"id": 141, "wort": "Justiziabel", "definition": "So beschaffen, dass es vor Gericht verhandelt oder rechtlich belangt werden kann.", "herkunft": "Vom Lateinischen 'iustitia' (Gerechtigkeit).", "anwendung": "Diese verleumderische Aussage im Netz ist definitiv justiziabel."},
+            {"id": 142, "wort": "Moratorium", "definition": "Ein gesetzlich, vertraglich oder freiwillig vereinbarter Aufschub von Handlungen.", "herkunft": "Aus dem Spätlateinischen 'moratorium' (Aufschub gewährend).", "anwendung": "Die Länder einigten sich auf ein Moratorium beim Ausbau der umstrittenen Technologie."},
+            {"id": 143, "wort": "Komplementär", "definition": "Einander perfekt ergänzend; zwei Gegensätze, die erst zusammen ein Ganzes bilden.", "herkunft": "Aus dem Französischen 'complémentaire' (ergänzend).", "anwendung": "Ihre Stärken sind komplementär: Er plant strategisch, sie setzt es kreativ um."},
+            {"id": 144, "wort": "Konformismus", "definition": "Die oft unkritische Anpassung des eigenen Verhaltens oder Denkens an die Mehrheit.", "herkunft": "Aus dem Lateinischen 'conformis' (gleichgestaltet).", "anwendung": "Aus purem Konformismus wagte es niemand in der Gruppe, dem Chef zu widersprechen."},
+            {"id": 145, "wort": "Kontrovers", "definition": "Umstritten; zu heftigen Diskussionen und gegensätzlichen Meinungen führend.", "herkunft": "Aus dem Lateinischen 'controversus' (entgegengewandt, strittig).", "anwendung": "Die Entscheidung des Schiedsrichters wurde in den Medien kontrovers diskutiert."},
+            {"id": 146, "wort": "Konventionell", "definition": "Den herkömmlichen gesellschaftlichen Regeln, Bräuchen oder Traditionen entsprechend.", "herkunft": "Aus dem Lateinischen 'conventio' (Übereinkunft).", "anwendung": "Statt einer konventionellen Feier entschieden sie sich für eine Hochzeit am Strand."},
+            {"id": 147, "wort": "Korrelation", "definition": "Die wechselseitige Beziehung oder der statistische Zusammenhang zwischen zwei Dingen.", "herkunft": "Aus dem Mittellateinischen 'correlatio' (Wechselbeziehung).", "anwendung": "Es gibt eine klare Korrelation zwischen hoher Bildung und besserer Gesundheit."},
+            {"id": 148, "wort": "Kumulativ", "definition": "Sich anhäufend, steigernd; durch ständige Hinzufügung von Teilen wachsend.", "herkunft": "Aus dem Lateinischen 'cumulare' (anhäufen).", "anwendung": "Die kumulativen Effekte des täglichen Lernens zeigen sich oft erst nach Monaten."},
+            {"id": 149, "wort": "Legitimität", "definition": "Die moralische Rechtmäßigkeit oder Anerkennung einer Herrschaft oder Entscheidung.", "herkunft": "Aus dem Lateinischen 'legitimus' (gesetzmäßig).", "anwendung": "Durch das gefälschte Dokument verlor die gesamte Abstimmung ihre Legitimität."},
+            {"id": 150, "wort": "Machiavellismus", "definition": "Eine Haltung, bei der jedes Mittel (auch Täuschung) zum Machterhalt erlaubt ist.", "herkunft": "Nach dem italienischen Staatsphilosophen Niccolò Machiavelli.", "anwendung": "Sein skrupelloses Vorgehen im Vorstand wurde als reiner Machiavellismus kritisiert."},
+            {"id": 151, "wort": "Manifestation", "definition": "Das Sichtbarwerden, Offenbarwerden oder der konkrete Ausdruck von etwas Abstraktem.", "herkunft": "Aus dem Lateinischen 'manifestare' (offenbaren).", "anwendung": "Der Streik war die sichtbare Manifestation der tiefen Unzufriedenheit im Betrieb."},
+            {"id": 152, "wort": "Melodramatisch", "definition": "Übertrieben gefühlvoll, theatralisch, künstlich oder emotional extrem aufgeladen.", "herkunft": "Aus dem Griechischen 'melos' (Lied) und 'drama' (Handlung).", "anwendung": "Ihre melodramatische Reaktion auf den kleinen Kratzer am Auto war völlig überzogen."},
+            {"id": 153, "wort": "Modus Operandi", "definition": "Die typische Art und Weise, wie eine Person oder Gruppe handelt oder vorgeht.", "herkunft": "Aus dem Lateinischen (wörtlich: 'Art des Handelns').", "anwendung": "Der Serienräuber nutzte bei jedem Einbruch exakt denselben Modus Operandi."},
+            {"id": 154, "wort": "Nepotismus", "definition": "Die ungerechtfertigte Bevorzugung von Verwandten bei der Postenvergabe; Vetternwirtschaft.", "herkunft": "Aus dem Lateinischen 'nepos' (Enkel, Neffe).", "anwendung": "Dass der Minister seinen Schwager einstellte, brachte ihm den Vorwurf des Nepotismus ein."},
+            {"id": 155, "wort": "Nihilismus", "definition": "Eine Haltung, die alle positiven Ideale, Werte und die Existenz eines Sinns verneint.", "herkunft": "Aus dem Lateinischen 'nihil' (nichts).", "anwendung": "Sein radikaler Nihilismus führte dazu, dass ihm gesellschaftliche Konventionen egal waren."},
+            {"id": 156, "wort": "Notorisch", "definition": "Allgemein bekannt für eine meist negative Eigenschaft; gewohnheitsmäßig oder unverbesserlich.", "herkunft": "Aus dem Lateinischen 'notorius' (allgemein bekannt).", "anwendung": "Glaub ihm kein Wort, er ist ein notorischer Lügner und Geschichtenerzähler."},
+            {"id": 157, "wort": "Omen", "definition": "Ein Vorzeichen oder prophetischer Hinweis auf ein zukünftiges, meist großes Ereignis.", "herkunft": "Aus dem Lateinischen 'omen' (Vorzeichen).", "anwendung": "Der plötzliche Stromausfall direkt vor der Eröffnung wurde als schlechtes Omen gedeutet."},
+            {"id": 158, "wort": "Onomatopoesie", "definition": "Die sprachliche Nachahmung von Geräuschen oder Naturlauten; Lautmalerei.", "herkunft": "Aus dem Griechischen 'onoma' (Name) und 'poiein' (machen).", "anwendung": "Comic-Wörter wie 'Zisch', 'Bumm' oder 'Klong' fallen unter die Onomatopoesie."},
+            {"id": 159, "wort": "Orthodox", "definition": "Streng gläubig, traditionell oder unnachgiebig an einer festgelegten Lehre festhaltend.", "herkunft": "Aus dem Griechischen 'orthos' (richtig) und 'doxa' (Meinung, Glaube).", "anwendung": "In Steuerfragen vertritt der Wirtschaftsprofessor eine sehr orthodoxe Meinung."},
+            {"id": 160, "wort": "Ostentativ", "definition": "Auf betont auffällige, demonstrative Weise zur Schau gestellt, um Reaktionen zu provozieren.", "herkunft": "Aus dem Lateinischen 'ostentare' (zur Schau stellen, entgegenhalten).", "anwendung": "Während des langweiligen Vortrags blickte er ostentativ im Minutentakt auf die Uhr."},
+            {"id": 161, "wort": "Pazifismus", "definition": "Eine ethische Haltung, die Krieg und jegliche Gewalt als Mittel der Politik strikt ablehnt.", "herkunft": "Aus dem Lateinischen 'pax' (Frieden) und 'facere' (machen).", "anwendung": "Ihre Weigerung, eine Waffe anzurühren, basierte auf ihrem tiefen Pazifismus."},
+            {"id": 162, "wort": "Pathos", "definition": "Ein feierlicher, emotionaler, leidenschaftlicher und oft übertriebener Ausdruck in Reden.", "herkunft": "Aus dem Griechischen 'pathos' (Leiden, Leidenschaft).", "anwendung": "Die Abschiedsrede des Bürgermeisters war voller Pathos, wirkte aber leider unauthentisch."},
+            {"id": 163, "wort": "Pejorativ", "definition": "Abwertend; ein Begriff, der eine herabsetzende oder beleidigende Wirkung besitzt.", "herkunft": "Aus dem Lateinischen 'peior' (schlechter).", "anwendung": "Das Wort 'Schmierfink' wird heute als pejorative Bezeichnung für Journalisten genutzt."},
+            {"id": 164, "wort": "Phlegmatisch", "definition": "Träge, schwerfällig, kaum aus der Ruhe zu bringen und extrem emotionsarm.", "herkunft": "Aus dem Griechischen 'phlegma' (Schleim, einer der vier Körpersäfte).", "anwendung": "Selbst als die Küche brannte, behielt er sein phlegmatisches Wesen bei."},
+            {"id": 165, "wort": "Plagiat", "definition": "Die unrechtmäßige Aneignung und Veröffentlichung von geistigem Eigentum eines anderen.", "herkunft": "Aus dem Lateinischen 'plagiarius' (Menschenräuber, Seelverkäufer).", "anwendung": "Wegen eines eindeutigen Plagiats in seiner Dissertation verlor er den Doktortitel."},
+            {"id": 166, "wort": "Pluralismus", "definition": "Das gleichzeitige Nebeneinanderbestehen verschiedener Meinungen, Kulturen oder Interessen.", "herkunft": "Aus dem Lateinischen 'plus' (mehr).", "anwendung": "Gelebter Pluralismus ist ein unverzichtbarer Grundpfeiler jeder echten Demokratie."},
+            {"id": 167, "wort": "Postulat", "definition": "Eine Forderung oder Behauptung, die ohne strikten Beweis als absolut notwendig aufgestellt wird.", "herkunft": "Aus dem Lateinischen 'postulare' (fordern).", "anwendung": "Das Postulat nach uneingeschränkter Transparenz wurde vom Vorstand abgelehnt."},
+            {"id": 168, "wort": "Präzedenzfall", "definition": "Ein Fall, der für zukünftige, ähnliche Situationen als Muster oder Richtschnur dient.", "herkunft": "Aus dem Lateinischen 'praecedere' (vorangehen).", "anwendung": "Das gestrige Urteil des Bundesgerichtshofs schuf einen historischen Präzedenzfall."},
+            {"id": 169, "wort": "Prämisse", "definition": "Eine Grundannahme oder logische Voraussetzung, auf der eine Argumentation aufbaut.", "herkunft": "Aus dem Lateinischen 'praemittere' (vorausschicken).", "anwendung": "Wenn deine Prämisse schon falsch ist, kann die Schlussfolgerung nicht stimmen."},
+            {"id": 170, "wort": "Privileg", "definition": "Ein Sonderrecht oder ein exklusiver Vorteil, den nur eine bestimmte Person oder Gruppe genießt.", "herkunft": "Aus dem Lateinischen 'privilegium' (Ausnahmegesetz).", "anwendung": "Ein sorgenfreies Leben führen zu können, ist in dieser Welt ein großes Privileg."},
+            {"id": 171, "wort": "Proaktiv", "definition": "Vorausblickend, initiativ und selbstbestimmt handelnd, statt nur auf Ereignisse zu reagieren.", "herkunft": "Zusammengesetzt aus dem Lateinischen 'pro' (vor) und 'activus' (tätig).", "anwendung": "Wir müssen proaktiv auf die Kunden zugehen, bevor die Konkurrenz es tut."},
+            {"id": 172, "wort": "Profan", "definition": "Alltäglich, weltlich, nicht religiös oder ohne tieferen spirituellen Sinn.", "herkunft": "Aus dem Lateinischen 'profanus' (ungeweiht, vor dem Heiligtum befindlich).", "anwendung": "Die feierliche Stimmung wurde durch recht profane Alltagsfragen unterbrochen."},
+            {"id": 173, "wort": "Prognose", "definition": "Eine wissenschaftlich oder logisch begründete Vorhersage einer zukünftigen Entwicklung.", "herkunft": "Aus dem Griechischen 'prognosis' (Vorwissen, Vorhersage).", "anwendung": "Die Prognose der Ökonomen für das nächste Halbjahr fällt überraschend positiv aus."},
+            {"id": 174, "wort": "Provokant", "definition": "So beschaffen, dass es bewusst Widerspruch, Ärger oder heftige Reaktionen herausfordert.", "herkunft": "Aus dem Lateinischen 'provocare' (herausfordern, hervorrufen).", "anwendung": "Mit seinen provokanten Thesen brachte der Autor das gesamte Publikum gegen sich auf."},
+            {"id": 175, "wort": "Pseudonym", "definition": "Ein frei gewählter Deckname, unter dem ein Künstler oder Autor seine Werke veröffentlicht.", "herkunft": "Aus dem Griechischen 'pseudos' (Lüge, Täuschung) und 'onoma' (Name).", "anwendung": "Die berühmte Autorin veröffentlichte ihre Liebesromane unter einem Pseudonym."},
+            {"id": 176, "wort": "Purismus", "definition": "Das konsequente Streben nach Reinheit, Schlichtheit oder dem Verzicht auf Verzierungen.", "herkunft": "Aus dem Lateinischen 'purus' (rein).", "anwendung": "Das Design der neuen Benutzeroberfläche folgt einem radikalen digitalen Purismus."},
+            {"id": 177, "wort": "Quantensprung", "definition": "Umgangssprachlich für einen plötzlichen, gewaltigen Fortschritt oder eine Weiterentwicklung.", "herkunft": "Aus der Quantenphysik (wo es physikalisch eigentlich die kleinste Zustandsänderung ist).", "anwendung": "Die Entdeckung des neuen Wirkstoffs ist ein Quantensprung für die Medizin."},
+            {"id": 178, "wort": "Querulant", "definition": "Jemand, der sich ständig (oft grundlos) beschwert und starrsinnig auf seinem Recht beharrt.", "herkunft": "Aus dem Lateinischen 'queri' (klagen, jammern).", "anwendung": "Der Mieter gilt im Haus als Querulant, da er wegen jeder Kleinigkeit klagt."},
+            {"id": 179, "wort": "Quixotisch", "definition": "Idealistisch und edel, aber völlig weltfremd, naiv und von vornherein zum Scheitern verurteilt.", "herkunft": "Nach der weltberühmten Romanfigur Don Quijote, der gegen Windmühlen kämpfte.", "anwendung": "Sein quixotischer Versuch, das Steuersystem im Alleingang zu reformieren, scheiterte."},
+            {"id": 180, "wort": "Repertoire", "definition": "Die Gesamtheit aller Stücke, Fähigkeiten oder Methoden, die eine Person beherrscht.", "herkunft": "Aus dem Spätlateinischen 'repertorium' (Verzeichnis).", "anwendung": "Der Comedian erweiterte sein Repertoire für die neue Tour um zwei Sketche."},
+            {"id": 181, "wort": "Repressalie", "definition": "Eine Zwangs- oder Vergeltungsmaßnahme, die als Reaktion auf eine Handlung ergriffen wird.", "herkunft": "Aus dem Mittellateinischen 'reprehendere' (zurückhalten, strafen).", "anwendung": "Die Demonstranten mussten mit harten Repressalien durch das Regime rechnen."},
+            {"id": 182, "wort": "Restriktion", "definition": "Eine Einschränkung, Beschränkung oder einengende, regulierende Bedingung.", "herkunft": "Aus dem Lateinischen 'restringere' (festziehen, einschränken).", "anwendung": "Wegen des Geldmangels gibt es im Betrieb strenge Restriktionen beim Budget."},
+            {"id": 183, "wort": "Rhetorik", "definition": "Die Kunst der Beredsamkeit; die Fähigkeit, durch Sprache zu überzeugen und zu beeinflussen.", "herkunft": "Aus dem Griechischen 'rhetorike' (Redekunst).", "anwendung": "Mit seiner geschickten Rhetorik zog der Redner die Zuhörer sofort in seinen Bann."},
+            {"id": 184, "wort": "Sarkasmus", "definition": "Bitterer, beißender Spott oder Hohn, der oft verletzend oder zynisch gemeint ist.", "herkunft": "Aus dem Griechischen 'sarkazein' (sich das Fleisch zerreißen, bitter spotten).", "anwendung": "Ihr Sarkasmus war kaum zu überhören, als sie ihm ironisch gratulierte."},
+            {"id": 185, "wort": "Säkularisierung", "definition": "Die Loslösung des Einzelnen, des Staates oder der Gesellschaft vom Einfluss der Kirche.", "herkunft": "Aus dem Lateinischen 'saeculum' (Jahrhundert, Weltzeit).", "anwendung": "Die Säkularisierung führte im letzten Jahrhundert zu einer sinkenden Zahl an Kirchenaustritten."},
+            {"id": 186, "wort": "Solipsismus", "definition": "Die philosophische These, dass nur das eigene Ich existiert und die Außenwelt eine Illusion ist.", "herkunft": "Aus dem Lateinischen 'solus' (allein) und 'ipse' (selbst).", "anwendung": "Sein extremes Desinteresse an Mitmenschen grenzte schon an praktischen Solipsismus."},
+            {"id": 187, "wort": "Spezifisch", "definition": "Besonders, charakteristisch, maßgeschneidert oder genau auf eine Sache zutreffend.", "herkunft": "Aus dem Spätlateinischen 'specificus' (eine eigene Art ausmachend).", "anwendung": "Für dieses seltene Problem müssen wir eine ganz spezifische Lösung entwickeln."},
+            {"id": 188, "wort": "Subjektiv", "definition": "Von persönlichen Gefühlen, Meinungen oder Vorlieben geleitet; nicht sachlich-neutral.", "herkunft": "Aus dem Spätlateinischen 'subiectivus' (darunterliegend, abhängig).", "anwendung": "Die Bewertung von Kunst ist immer subjektiv und liegt im Auge des Betrachters."},
+            {"id": 189, "wort": "Sublimieren", "definition": "Primitive Triebe oder negative Energien in gesellschaftlich anerkannte, kreative Taten umwandeln.", "herkunft": "Aus dem Lateinischen 'sublimare' (erhöhen, veredeln).", "anwendung": "Der Boxer verstand es, seine innere Wut im harten Training perfekt zu sublimieren."},
+            {"id": 190, "wort": "Sukzessiv", "definition": "Schrittweise, nacheinander erfolgend; allmählich und kontinuierlich voranschreitend.", "herkunft": "Aus dem Spätlateinischen 'successivus' (nachfolgend).", "anwendung": "Die alten Computersysteme werden in den kommenden Wochen sukzessiv ausgetauscht."},
+            {"id": 191, "wort": "Surreal", "definition": "Traumhaft, unwirklich, absurd; die Realität auf unlogische Weise verzerrend.", "herkunft": "Aus dem Französischen 'surréalisme' (über dem Realismus).", "anwendung": "Es war ein surrealer Moment, als am helllichten Tag ein Känguru durch den Park sprang."},
+            {"id": 192, "wort": "Tabula rasa", "definition": "Ein unbeschriebenes Blatt; im übertragenen Sinne ein radikaler, unbelasteter Neuanfang.", "herkunft": "Aus dem Lateinischen (wörtlich: 'glattgeschabte Schreibtafel').", "anwendung": "Nach dem großen Krach machten die Gründer Tabula rasa und bauten die Firma neu auf."},
+            {"id": 193, "wort": "Transzendenz", "definition": "Das Überschreiten der Grenzen von Erfahrung, Sinnen und der materiell fassbaren Welt.", "herkunft": "Aus dem Lateinischen 'transcendere' (übersteigen, überschreiten).", "anwendung": "In spirituellen Praktiken sucht der Mensch oft nach einer Form von Transzendenz."},
+            {"id": 194, "wort": "Bigotterie", "definition": "Scheinheiligkeit; eine engstirnige Moral, bei der man Werte predigt, aber selbst missachtet.", "herkunft": "Aus dem Französischen 'bigot' (scheinheilig, frömmelnd).", "anwendung": "Die Bigotterie des Sittenwächters flog auf, als er selbst beim Lügen erwischt wurde."},
+            {"id": 195, "wort": "Usurpation", "definition": "Die gewaltsame, widerrechtliche Inbesitznahme eines Amtes, Throns oder einer Machtposition.", "herkunft": "Aus dem Lateinischen 'usurpatio' (Inbesitznahme).", "anwendung": "Der illegale Staatsstreich der Rebellen war eine klassische Usurpation der Macht."},
+            {"id": 196, "wort": "Verve", "definition": "Ein schwungvoller, lebendiger Elan; Begeisterung und gestalterische Kraft.", "herkunft": "Aus dem Französischen 'verve' (Laune, Redeschwall).", "anwendung": "Sie verteidigte ihr neues Projekt mit einer solchen Verve, dass alle zustimmten."},
+            {"id": 197, "wort": "Vigilanz", "definition": "Die anhaltende Wachsamkeit oder erhöhte Aufmerksamkeit des Nervensystems bei Monotonie.", "herkunft": "Aus dem Lateinischen 'vigilantia' (Wachsamkeit).", "anwendung": "Die Arbeit im Kontrollzentrum erfordert über Stunden hinweg eine extrem hohe Vigilanz."},
+            {"id": 198, "wort": "Virtuos", "definition": "Meisterhaft; eine Technik, Kunstform oder Fähigkeit in absoluter Vollendung beherrschend.", "herkunft": "Aus dem Italienischen 'virtuoso' (tüchtig, tugendhaft).", "anwendung": "Der Geiger spielte das extrem schwierige Solo auf eine unnachahmliche, virtuose Weise."},
+            {"id": 199, "wort": "Xenophobie", "definition": "Die tief sitzende Angst vor oder Feindseligkeit gegenüber Fremden; Fremdenfeindlichkeit.", "herkunft": "Aus dem Griechischen 'xenos' (Fremder) und 'phobos' (Angst).", "anwendung": "Aufklärung und Bildung sind die wirksamsten Waffen im Kampf gegen Xenophobie."},
+            {"id": 200, "wort": "Zäsur", "definition": "Ein markanter Einschnitt, Wendepunkt oder eine Unterbrechung in einer Geschichte oder Epoche.", "herkunft": "Aus dem Lateinischen 'caesura' (Schnitt, Fällung).", "anwendung": "Die Erfindung des Buchdrucks markiert eine fundamentale Zäsur in der Menschheitsgeschichte."},
+            {"id": 201, "wort": "Aberration", "definition": "Eine Abweichung von der normalen Richtung, dem richtigen Weg oder der biologischen Norm.", "herkunft": "Aus dem Lateinischen 'aberrare' (abschweifen, sich verirren).", "anwendung": "Sein plötzlicher Wutausbruch war eine untypische Aberration in seinem sonst sanften Wesen."},
+            {"id": 202, "wort": "Affekt", "definition": "Eine heftige, unkontrollierte Gemütsbewegung oder Gefühlsaufwallung (z.B. blinde Wut).", "herkunft": "Aus dem Lateinischen 'affectus' (Zustand, Gemütsverfassung).", "anwendung": "Das Gericht entschied am Ende, dass der Täter im Affekt gehandelt hatte."},
+            {"id": 203, "wort": "Agnostizismus", "definition": "Die philosophische Ansicht, dass die Existenz Gottes oder Metaphysischem unbeweisbar ist.", "herkunft": "Aus dem Griechischen 'a-' (nicht) und 'gnosis' (Erkenntnis).", "anwendung": "Sein Agnostizismus verbietet es ihm, eine feste religiöse Dogmatik anzunehmen."},
+            {"id": 204, "wort": "Ambiguität", "definition": "Die Mehrdeutigkeit, Unklarheit oder Doppeldeutigkeit einer Aussage oder Situation.", "herkunft": "Aus dem Lateinischen 'ambiguus' (uneindeutig, schwankend).", "anwendung": "Die Ambiguität der Klausel im Arbeitsvertrag führte nachträglich zu großem Streit."},
+            {"id": 205, "wort": "Animosität", "definition": "Eine feindselige, gereizte Grundhaltung, Abneigung oder Feindschaft gegen jemanden.", "herkunft": "Aus dem Lateinischen 'animositas' (Heftigkeit, Zorn).", "anwendung": "Zwischen den beiden rivalisierenden Fraktionen herrschte eine spürbare Animosität."},
+            {"id": 206, "wort": "Avantgarde", "definition": "Die Vorreiter, Pioniere oder Wegbereiter einer neuen künstlerischen oder politischen Richtung.", "herkunft": "Aus dem Französischen 'avant-garde' (militärische Vorhut).", "anwendung": "Mit seinen experimentellen Bauten zählte der Architekt zur absoluten Avantgarde."},
+            {"id": 207, "wort": "Chauvinismus", "definition": "Der exzessive Glaube an die Überlegenheit der eigenen Gruppe (oft Nation oder Geschlecht).", "herkunft": "Nach Nicolas Chauvin, einem extrem patriotischen, legendären Soldaten Frankreichs.", "anwendung": "Seine abfälligen Bemerkungen über Kolleginnen zeugten von purem Chauvinismus."},
+            {"id": 208, "wort": "Despotismus", "definition": "Eine Herrschaftsform, bei der ein Herrscher absolut und uneingeschränkt regiert; Gewaltherrschaft.", "herkunft": "Aus dem Griechischen 'despotes' (Gebieter, Herr).", "anwendung": "Das Volk revoltierte schließlich erfolgreich gegen den jahrzehntelangen Despotismus."},
+            {"id": 209, "wort": "Dialektik", "definition": "Die Kunst der Gesprächsführung; das Finden von Wahrheit durch das Gegenüberstellen von Gegensätzen.", "herkunft": "Aus dem Griechischen 'dialektike techne' (Kunst des Unterredens).", "anwendung": "In seiner logischen Argumentation nutzte er die Dialektik von These und Antithese."},
+            {"id": 210, "wort": "Eklektizismus", "definition": "Das gezielte Auswählen und Kombinieren von passenden Elementen aus verschiedenen Systemen.", "herkunft": "Aus dem Griechischen 'eklektikos' (auswählend).", "anwendung": "Die Architektur des Schlosses ist ein gelungener Eklektizismus aus Gotik und Renaissance."}
+        ];
+
+        // Führe die App-Logik SOFORT aus (nicht erst beim Onload)
+        try {
+            // BEHOBEN: 'sv' (Schwedisch) erzwingt das Format YYYY-MM-DD in der LOKALEN Zeitzone des Users
+            const heute = new Date().toLocaleDateString('sv'); 
+            
+            let letzterBesuch = localStorage.getItem('letzterBesuch');
+            let streak = parseInt(localStorage.getItem('streak')) || 0;
+            let wortIndex = parseInt(localStorage.getItem('wortIndex')) || 0;
+
+            if (letzterBesuch !== heute) {
+                if (letzterBesuch) {
+                    const gestern = new Date();
+                    gestern.setDate(gestern.getDate() - 1);
+                    // BEHOBEN: Gestern ebenfalls in lokaler Zeitzone formatieren
+                    const gesternText = gestern.toLocaleDateString('sv');
+
+                    if (letzterBesuch === gesternText) {
+                        streak++; 
+                    } else {
+                        streak = 1; 
+                    }
+                    wortIndex++;
+                } else {
+                    streak = 1;
+                    wortIndex = 0;
+                }
+                
+                localStorage.setItem('letzterBesuch', heute);
+                localStorage.setItem('streak', streak);
+                localStorage.setItem('wortIndex', wortIndex);
+            }
+
+            if (wortIndex >= woerterDatenbank.length) {
+                wortIndex = wortIndex % woerterDatenbank.length;
+            }
+
+            // Design für das Wort zurücksetzen (da JavaScript läuft!)
+            const wortAnzeige = document.getElementById('wort-anzeige');
+            wortAnzeige.style.fontSize = "38px";
+            wortAnzeige.style.color = "#1a252f";
+
+            document.getElementById('streak-anzeige').innerText = "🔥 " + streak + " Tag(e)";
+
+            const heutigesWort = woerterDatenbank[wortIndex];
+            wortAnzeige.innerText = heutigesWort.wort;
+            document.getElementById('definition-anzeige').innerText = heutigesWort.definition;
+            document.getElementById('herkunft-anzeige').innerText = heutigesWort.herkunft;
+            document.getElementById('anwendung-anzeige').innerText = "„" + heutigesWort.anwendung + "“";
+
+        } catch (error) {
+            // OPTIMIERUNG: Falls localStorage blockiert wird, berechnen wir den Index anhand der 
+            // vergangenen Tage auf der Erde. So wechselt das Wort AUCH auf iPhones ohne Speicher täglich!
+            const tageSeit1970 = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+            const fallBackIndex = tageSeit1970 % woerterDatenbank.length;
+
+            const wortAnzeige = document.getElementById('wort-anzeige');
+            wortAnzeige.style.fontSize = "38px";
+            wortAnzeige.style.color = "#1a252f";
+
+            const heutigesWort = woerterDatenbank[fallBackIndex];
+            wortAnzeige.innerText = heutigesWort.wort;
+            document.getElementById('definition-anzeige').innerText = heutigesWort.definition;
+            document.getElementById('herkunft-anzeige').innerText = heutigesWort.herkunft;
+            document.getElementById('anwendung-anzeige').innerText = "„" + heutigesWort.anwendung + "“";
+            document.getElementById('streak-anzeige').innerText = "🔥 --";
+        }
+    </script>
+
+</body>
+</html>
